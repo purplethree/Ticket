@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#070708" />
+    <meta name="description" content="Track a real flight live on a premium digital boarding pass. Study until this plane lands." />
+    <title>Until Landing · Live Flight Study Tracker</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='12' fill='%23111113'/%3E%3Cpath fill='%23f5f5f7' d='M46 24C46 22.6 44.6 21.6 42.4 21.6L30 21.6 19.6 4.4Q19.2 3.8 18.4 3.8L16.6 3.8Q15.8 3.8 15.9 4.6L20.2 21.6 11.4 21.6 7.2 13.8Q6.9 13.2 6.2 13.2L5.2 13.2Q4.6 13.2 4.7 13.9L6.4 21.8C5 22.1 4 22.9 4 24 4 25.1 5 25.9 6.4 26.2L4.7 34.1Q4.6 34.8 5.2 34.8L6.2 34.8Q6.9 34.8 7.2 34.2L11.4 26.4 20.2 26.4 15.9 43.4Q15.8 44.2 16.6 44.2L18.4 44.2Q19.2 44.2 19.6 43.6L30 26.4 42.4 26.4C44.6 26.4 46 25.4 46 24ZM22.2 12.1H27.2A1.4 1.4 0 0 1 27.2 14.9H22.2A1.4 1.4 0 0 1 22.2 12.1ZM22.2 33.1H27.2A1.4 1.4 0 0 1 27.2 35.9H22.2A1.4 1.4 0 0 1 22.2 33.1Z' transform='scale(.8) translate(6 6)'/%3E%3C/svg%3E"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body data-view="search" data-layout="full" data-bg="dark" data-pos="center" data-size="m" data-accent="blue">
+    <div class="app">
+      <!-- ───────────── Top bar ───────────── -->
+      <header class="topbar">
+        <button class="brand" type="button" data-action="home" aria-label="Until Landing: back to search">
+          <span class="brand-mark" aria-hidden="true"><i></i><i></i></span>
+          <span class="brand-name">UNTIL LANDING</span>
+        </button>
+
+        <div class="tb-tracker">
+          <button class="chip-btn" type="button" data-action="new-search" aria-label="New search">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3 5 8l5 5" /></svg><span>Search</span>
+          </button>
+          <div class="seg" role="radiogroup" aria-label="Layout" data-seg="layout">
+            <button type="button" role="radio" data-value="full">Full ticket</button>
+            <button type="button" role="radio" data-value="compact">Compact</button>
+            <button type="button" role="radio" data-value="minimal">Minimal</button>
+          </div>
+          <div class="tb-right">
+            <button class="chip-btn" type="button" data-action="edit">Edit pass</button>
+            <button class="chip-btn" type="button" data-action="display" aria-haspopup="dialog" aria-expanded="false">Display</button>
+            <button class="chip-btn chip-primary" type="button" data-action="reel">
+              <span class="rec-dot" aria-hidden="true"></span>Reel mode
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <main class="main">
+        <!-- ───────────── Search ───────────── -->
+        <section class="view view-search" data-view-name="search">
+          <div class="search-wrap">
+            <p class="eyebrow">LIVE FLIGHT · STUDY TIMER</p>
+            <h1 class="headline">Study until this plane lands.</h1>
+            <p class="subhead">Enter a real flight number. The tracker finds today's flight, loads its live data and counts down to touchdown.</p>
+
+            <form class="search-card" id="search-form" autocomplete="off" novalidate>
+              <label class="field-label" for="flight-input">FLIGHT NUMBER</label>
+              <input
+                id="flight-input"
+                class="flight-input"
+                name="flight"
+                placeholder="EY416"
+                maxlength="10"
+                spellcheck="false"
+                autocapitalize="characters"
+                autocorrect="off"
+                enterkeyhint="search"
+                aria-describedby="search-error"
+              />
+              <div class="date-row">
+                <label class="field-label" for="date-input">FLIGHT DATE <span class="optional">OPTIONAL</span></label>
+                <input id="date-input" class="date-input" type="date" name="date" />
+              </div>
+              <button type="submit" class="btn-primary">TRACK FLIGHT</button>
+              <p class="form-error" id="search-error" role="alert" hidden></p>
+            </form>
+
+            <button class="demo-link" type="button" data-action="demo">
+              <span class="demo-badge">DEMO</span>
+              <span>Try the demo flight</span>
+              <span class="demo-link-route">EY416 · AUH → HKT</span>
+            </button>
+            <p class="setup-note" id="setup-note" hidden>
+              Live data is off: no AirLabs API key was found. Add <code>AIRLABS_API_KEY</code> to your <code>.env</code> file and
+              restart the server. Demo mode works without a key.
+            </p>
+          </div>
+        </section>
+
+        <!-- ───────────── Loading ───────────── -->
+        <section class="view view-loading" data-view-name="loading" aria-live="polite">
+          <div class="locating">
+            <div class="locating-track">
+              <span class="locating-line"></span>
+              <span class="locating-plane" id="locating-plane"></span>
+            </div>
+            <p class="locating-text">LOCATING <span id="locating-code">FLIGHT</span><span class="dots"><i>.</i><i>.</i><i>.</i></span></p>
+          </div>
+        </section>
+
+        <!-- ───────────── Instance picker ───────────── -->
+        <section class="view view-select" data-view-name="select">
+          <div class="select-wrap">
+            <button class="back-link" type="button" data-action="new-search">
+              <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3 5 8l5 5" /></svg>New search
+            </button>
+            <h2 class="select-title" id="select-title">Choose your flight</h2>
+            <p class="select-message" id="select-message"></p>
+            <ul class="instance-list" id="instance-list"></ul>
+          </div>
+        </section>
+
+        <!-- ───────────── Tracker ───────────── -->
+        <section class="view view-tracker" data-view-name="tracker">
+          <div class="stage" id="stage">
+            <div class="frame" id="frame">
+              <div class="widget-slot" id="widget-slot"></div>
+            </div>
+          </div>
+
+          <div class="below">
+            <p class="notice" id="tracker-notice" role="status" hidden></p>
+
+            <div class="demo-bar" id="demo-bar" hidden>
+              <div class="demo-bar-head">
+                <span class="demo-badge">DEMO</span>
+                <span class="demo-bar-text">Simulated flight. No API requests are made.</span>
+              </div>
+              <div class="demo-controls">
+                <button type="button" class="chip-btn" data-action="demo-toggle" id="demo-toggle">Pause</button>
+                <div class="seg seg-small" role="radiogroup" aria-label="Simulation speed" data-seg="demo-speed">
+                  <button type="button" role="radio" data-value="1">1×</button>
+                  <button type="button" role="radio" data-value="10">10×</button>
+                  <button type="button" role="radio" data-value="60">60×</button>
+                </div>
+                <div class="seg seg-small" role="radiogroup" aria-label="Scenario" data-seg="demo-scenario">
+                  <button type="button" role="radio" data-value="departure">Pre-departure</button>
+                  <button type="button" role="radio" data-value="cruise">In flight</button>
+                  <button type="button" role="radio" data-value="landing">Final 90 s</button>
+                </div>
+              </div>
+            </div>
+
+            <details class="live-panel" id="live-panel" open>
+              <summary>
+                <span class="lp-title">LIVE FLIGHT</span>
+                <span class="lp-src" id="lp-src"></span>
+                <svg class="lp-chev" viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4" /></svg>
+              </summary>
+              <dl class="lp-grid" id="lp-grid"></dl>
+            </details>
+
+            <button type="button" class="other-instances" id="other-instances" data-action="instances" hidden></button>
+          </div>
+        </section>
+      </main>
+
+      <footer class="site-footer">STUDY VISUAL • NOT VALID FOR TRAVEL</footer>
+    </div>
+
+    <!-- ───────────── Reel mode floating controls ───────────── -->
+    <div class="reel-controls" id="reel-controls" aria-label="Reel mode controls">
+      <div class="seg seg-dark" role="radiogroup" aria-label="Layout" data-seg="layout">
+        <button type="button" role="radio" data-value="full">Full ticket</button>
+        <button type="button" role="radio" data-value="compact">Compact</button>
+        <button type="button" role="radio" data-value="minimal">Minimal</button>
+      </div>
+      <div class="seg seg-dark" role="radiogroup" aria-label="Background" data-seg="bg">
+        <button type="button" role="radio" data-value="dark">Dark</button>
+        <button type="button" role="radio" data-value="light">Light</button>
+        <button type="button" role="radio" data-value="green">Green</button>
+      </div>
+      <button type="button" class="chip-btn chip-dark" data-action="cycle-pos" id="reel-pos-btn">Position</button>
+      <button type="button" class="chip-btn chip-dark" data-action="fullscreen">Fullscreen</button>
+      <button type="button" class="chip-btn chip-dark" data-action="exit-reel">Exit</button>
+    </div>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <!-- ───────────── Display menu ───────────── -->
+    <div class="popover" id="display-menu" role="dialog" aria-label="Display settings" hidden>
+      <div class="pop-section">
+        <span class="pop-label">OVERLAY BACKGROUND</span>
+        <div class="seg seg-full" role="radiogroup" aria-label="Background" data-seg="bg">
+          <button type="button" role="radio" data-value="dark">Dark</button>
+          <button type="button" role="radio" data-value="light">Light</button>
+          <button type="button" role="radio" data-value="green">Green screen</button>
+        </div>
+        <p class="pop-hint">Green screen uses pure #00FF00 behind the card for chroma key in CapCut or Premiere.</p>
+      </div>
+      <div class="pop-section">
+        <span class="pop-label">POSITION IN REEL MODE</span>
+        <div class="seg seg-full seg-wrap" role="radiogroup" aria-label="Overlay position" data-seg="pos">
+          <button type="button" role="radio" data-value="center">Center</button>
+          <button type="button" role="radio" data-value="top-right">Top right</button>
+          <button type="button" role="radio" data-value="bottom-right">Bottom right</button>
+          <button type="button" role="radio" data-value="bottom-center">Bottom center</button>
+        </div>
+      </div>
+      <div class="pop-section pop-row">
+        <div>
+          <span class="pop-label">SIZE</span>
+          <div class="seg" role="radiogroup" aria-label="Size" data-seg="size">
+            <button type="button" role="radio" data-value="s">S</button>
+            <button type="button" role="radio" data-value="m">M</button>
+            <button type="button" role="radio" data-value="l">L</button>
+          </div>
+        </div>
+        <div>
+          <span class="pop-label">ACCENT</span>
+          <div class="swatches" role="radiogroup" aria-label="Accent colour" data-seg="accent">
+            <button type="button" role="radio" data-value="blue" aria-label="Blue"></button>
+            <button type="button" role="radio" data-value="gold" aria-label="Gold"></button>
+            <button type="button" role="radio" data-value="white" aria-label="White"></button>
+          </div>
+        </div>
+      </div>
+      <p class="pop-hint pop-keys">Shortcuts: <kbd>R</kbd> reel · <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> layout · <kbd>B</kbd> background · <kbd>E</kbd> edit</p>
+    </div>
+
+    <!-- ───────────── Passenger editor ───────────── -->
+    <div class="sheet-backdrop" id="sheet-backdrop" hidden></div>
+    <aside class="sheet" id="editor" aria-label="Edit boarding pass" aria-hidden="true" inert>
+      <header class="sheet-head">
+        <div>
+          <h2>Edit pass</h2>
+          <p>Visual only. Saved in this browser, never sent to the flight API.</p>
+        </div>
+        <button type="button" class="icon-btn" data-action="close-editor" aria-label="Close">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8" /></svg>
+        </button>
+      </header>
+      <form class="sheet-body" id="editor-form" autocomplete="off">
+        <label class="ed-field ed-wide">
+          <span>Passenger name</span>
+          <input name="name" maxlength="32" spellcheck="false" />
+        </label>
+        <label class="ed-field">
+          <span>Seat</span>
+          <input name="seat" maxlength="4" spellcheck="false" />
+        </label>
+        <label class="ed-field">
+          <span>Boarding group / zone</span>
+          <input name="group" maxlength="10" spellcheck="false" />
+        </label>
+        <label class="ed-field ed-wide">
+          <span>Cabin class</span>
+          <select name="cabin">
+            <option value="ECONOMY">Economy</option>
+            <option value="PREMIUM ECONOMY">Premium Economy</option>
+            <option value="BUSINESS">Business</option>
+            <option value="FIRST">First</option>
+          </select>
+        </label>
+        <label class="ed-field">
+          <span>Booking reference</span>
+          <input name="pnr" maxlength="8" spellcheck="false" />
+        </label>
+        <label class="ed-field">
+          <span>Sequence number</span>
+          <input name="seq" maxlength="4" inputmode="numeric" spellcheck="false" />
+        </label>
+        <label class="ed-field ed-wide">
+          <span>Boarding time <em>departure airport local time</em></span>
+          <input name="boarding" type="time" />
+        </label>
+        <div class="ed-actions">
+          <button type="button" class="chip-btn" data-action="reset-passenger">Reset to defaults</button>
+          <button type="button" class="btn-primary btn-small" data-action="close-editor">Done</button>
+        </div>
+      </form>
+    </aside>
+
+    <script type="module" src="js/app.js"></script>
+  </body>
+</html>
