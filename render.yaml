@@ -1,0 +1,23 @@
+# Render Blueprint: https://render.com/docs/blueprint-spec
+# In Render: New → Blueprint → pick this repository. Render reads this file,
+# then asks you for the two secret values below.
+services:
+  - type: web
+    name: until-landing
+    runtime: node
+    plan: free
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      # Your AirLabs API key (kept on Render's server, never sent to the page)
+      - key: AIRLABS_API_KEY
+        sync: false
+      # The password visitors must enter to open the site
+      - key: SITE_PASSWORD
+        sync: false
+      - key: REFRESH_INTERVAL_SECONDS
+        value: "60"

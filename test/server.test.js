@@ -181,6 +181,44 @@ test('network failure to the provider is a clean 502', async () => {
   }
 });
 
+test('SITE_PASSWORD protects pages and API but not the health check', async () => {
+  const provider = new AirLabsProvider({ apiKey: MOCK_KEY, baseUrl: `http://127.0.0.1:${mockPort}`, logger: quietLogger });
+  const srv = createApp({ provider, sitePassword: 'correct horse' }).listen(0, '127.0.0.1');
+  await new Promise((r) => srv.once('listening', r));
+  const b = `http://127.0.0.1:${srv.address().port}`;
+  const auth = (pw) => ({ headers: { Authorization: `Basic ${Buffer.from(`any:${pw}`).toString('base64')}` } });
+  try {
+    const page = await fetch(`${b}/`);
+    assert.equal(page.status, 401);
+    assert.match(page.headers.get('www-authenticate') || '', /^Basic/);
+    assert.equal((await fetch(`${b}/api/config`)).status, 401);
+    assert.equal((await fetch(`${b}/api/config`, auth('wrong'))).status, 401);
+    const ok = await fetch(`${b}/api/config`, auth('correct horse'));
+    assert.equal(ok.status, 200);
+    assert.equal((await ok.json()).liveAvailable, true);
+    assert.equal((await fetch(`${b}/`, auth('correct horse'))).status, 200);
+    const health = await fetch(`${b}/healthz`);
+    assert.equal(health.status, 200);
+  } finally {
+    srv.close();
+  }
+});
+
+test('repeated wrong passwords are locked out', async () => {
+  const provider = new AirLabsProvider({ apiKey: MOCK_KEY, baseUrl: `http://127.0.0.1:${mockPort}`, logger: quietLogger });
+  const srv = createApp({ provider, sitePassword: 'secret-pass' }).listen(0, '127.0.0.1');
+  await new Promise((r) => srv.once('listening', r));
+  const b = `http://127.0.0.1:${srv.address().port}`;
+  const bad = { headers: { Authorization: `Basic ${Buffer.from('x:nope').toString('base64')}` } };
+  const good = { headers: { Authorization: `Basic ${Buffer.from('x:secret-pass').toString('base64')}` } };
+  try {
+    for (let i = 0; i < 10; i++) assert.equal((await fetch(`${b}/api/config`, bad)).status, 401);
+    assert.equal((await fetch(`${b}/api/config`, good)).status, 429, 'locked even with the right password');
+  } finally {
+    srv.close();
+  }
+});
+
 test('repeated identical requests are served from cache (no duplicate API calls)', async () => {
   await get('/api/search?flight=EY416');
   const before = { ...mock.stats.byEndpoint };

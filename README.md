@@ -86,6 +86,31 @@ Type `EY416` and press **TRACK FLIGHT**. No key yet? Click **Try the demo flight
 
 ---
 
+## Put it online with Render (no downloads, works on your phone)
+
+Render runs the server for you and gives you a link like `https://until-landing.onrender.com`. The free plan is enough. Your AirLabs key is stored in Render's settings, on the server, and never reaches the page.
+
+1. Get your AirLabs API key (steps 1–2 above).
+2. Go to <https://render.com> and **Sign up with GitHub**. When GitHub asks which repositories Render may see, allow this repository (`Ticket`).
+3. In the Render dashboard click **New** → **Blueprint**.
+4. Pick this repository. If Render asks for a branch, choose the one that contains `render.yaml`. Render reads that file and sets everything up.
+5. Render asks for two values:
+   * **AIRLABS_API_KEY**: paste your AirLabs key.
+   * **SITE_PASSWORD**: make up a password. Anyone opening the site needs it, which stops strangers from using up your AirLabs requests.
+6. Click **Apply** (or **Deploy Blueprint**). The first build takes 2–3 minutes.
+7. Open the `…onrender.com` link shown at the top of the service page. The browser asks for a user name and password: type anything as the user name and your **SITE_PASSWORD** as the password. The browser remembers it.
+
+Good to know:
+
+* **First load after a break is slow.** Free Render services sleep after about 15 minutes without visitors and take 30–60 seconds to wake. While you're tracking a flight, the page refreshes every minute, which keeps it awake.
+* **Updates deploy automatically.** When new code is pushed to that branch, Render rebuilds on its own.
+* **Changing the key or password:** Render dashboard → your service → **Environment** → edit → **Save changes**. Render restarts the app.
+* **If something breaks,** the **Logs** tab shows what the server printed. A healthy start includes `Live data: airlabs (key loaded…)` and `Password: on`.
+
+(You can use other Node hosts too. Set `AIRLABS_API_KEY`, `SITE_PASSWORD` and `HOST=0.0.0.0`, and use `npm ci` to build and `npm start` to run.)
+
+---
+
 ## Using it
 
 ### Search
@@ -225,7 +250,7 @@ A 6-hour flight at the default 60 s interval uses about 360 requests. On the fre
 
 ## Phone access
 
-Set `HOST=0.0.0.0` in `.env` and restart. On your phone (same Wi-Fi), open `http://<your-computer's-IP>:3000`, e.g. `http://192.168.1.23:3000`. To find the IP: macOS *System Settings → Wi-Fi → Details*, Windows `ipconfig`. Keep `HOST=127.0.0.1` otherwise, so nobody else on the network can use your API quota.
+Easiest: put it online with Render (above) and open the link on your phone. To use your own computer instead, set `HOST=0.0.0.0` in `.env` and restart. On your phone (same Wi-Fi), open `http://<your-computer's-IP>:3000`, e.g. `http://192.168.1.23:3000`. To find the IP: macOS *System Settings → Wi-Fi → Details*, Windows `ipconfig`. Keep `HOST=127.0.0.1` otherwise, so nobody else on the network can use your API quota.
 
 ---
 
@@ -241,6 +266,8 @@ Set `HOST=0.0.0.0` in `.env` and restart. On your phone (same Wi-Fi), open `http
 | *Couldn't find an active EY416. Choose another flight instance below.* | Nothing airborne or departing today. Pick an instance from the list. |
 | *Couldn't reach the local server…* | The terminal running `npm start` was closed. Start it again. |
 | *Port 3000 is already in use* | Set `PORT=3001` in `.env` and open `http://localhost:3001`. |
+| Browser keeps asking for a password | That's `SITE_PASSWORD`. Any user name works; the password must match exactly. After 10 wrong tries, wait 10 minutes. |
+| Render link takes a minute to open | The free plan was asleep. It wakes on the first visit. |
 
 ---
 
@@ -248,6 +275,7 @@ Set `HOST=0.0.0.0` in `.env` and restart. On your phone (same Wi-Fi), open `http
 
 ```
 server.js              Express backend: static files + /api/config, /api/search, /api/flight
+render.yaml            one-click Render setup (Blueprint)
 providers/
   index.js             provider registry + the provider-agnostic data model
   airlabs.js           AirLabs integration (Flight Information + Real-Time Flights + Schedules)
@@ -255,6 +283,7 @@ lib/
   select.js            picks the right daily instance (airborne > today > ask)
   flight-code.js       parses "EY 416", "ETD416", ...
   errors.js            error codes → human-readable messages
+  auth.js              optional site password (SITE_PASSWORD)
   cache.js             TTL cache (memory + disk for reference data)
   aircraft-types.js    ICAO type code → model name
 public/

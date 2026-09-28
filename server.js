@@ -4,8 +4,11 @@
  * Flight Study Tracker: tiny backend.
  *
  * Serves the static frontend from /public and proxies flight-data requests so
- * the API key stays on this machine. The browser only ever talks to /api/*
+ * the API key stays on the server. The browser only ever talks to /api/*
  * on this server; it never sees the key.
+ *
+ * Runs the same way on your computer and on a host such as Render. When
+ * SITE_PASSWORD is set, every page and API route asks for that password.
  */
 
 require('dotenv').config({ quiet: true });
@@ -16,6 +19,11 @@ const { createProvider } = require('./providers');
 const { parseFlightCode, parseDateParam } = require('./lib/flight-code');
 const { selectInstance } = require('./lib/select');
 const { FlightDataError, toClientError } = require('./lib/errors');
+const { passwordGate } = require('./lib/auth');
+
+// Render sets RENDER=true. Behind its proxy the visitor's IP is in
+// X-Forwarded-For, and the server must listen on all interfaces.
+const ON_RENDER = !!process.env.RENDER;
 
 const REFRESH_SECONDS = clampInt(process.env.REFRESH_INTERVAL_SECONDS, 60, 30, 600);
 
@@ -54,11 +62,16 @@ function sendError(res, err, overrideMessage) {
   res.status(status).json(body);
 }
 
-function createApp({ provider } = {}) {
+function createApp({
+  provider,
+  sitePassword = process.env.SITE_PASSWORD,
+  trustProxy = ON_RENDER || process.env.TRUST_PROXY === '1',
+} = {}) {
   const app = express();
   const flightProvider = provider || createProvider(process.env);
 
   app.disable('x-powered-by');
+  if (trustProxy) app.set('trust proxy', 1);
   app.use((req, res, next) => {
     res.set({
       'X-Content-Type-Options': 'nosniff',
@@ -77,6 +90,10 @@ function createApp({ provider } = {}) {
     });
     next();
   });
+
+  // Health check for hosting platforms (no data, no password needed).
+  app.get('/healthz', (req, res) => res.type('text').send('ok'));
+  app.use(passwordGate(sitePassword, { exempt: ['/healthz'] }));
 
   const api = express.Router();
   api.use((req, res, next) => {
@@ -151,20 +168,21 @@ function createApp({ provider } = {}) {
 
 if (require.main === module) {
   const port = clampInt(process.env.PORT, 3000, 1, 65535);
-  const host = (process.env.HOST || '127.0.0.1').trim();
+  const host = (process.env.HOST || (ON_RENDER ? '0.0.0.0' : '127.0.0.1')).trim();
   const provider = createProvider(process.env);
   const app = createApp({ provider });
   const server = app.listen(port, host, () => {
     const shownHost = host === '0.0.0.0' ? 'localhost' : host === '127.0.0.1' ? 'localhost' : host;
     console.log('');
     console.log('  ✈  Flight Study Tracker');
-    console.log(`     Open  http://${shownHost}:${port}`);
+    console.log(`     Open  ${process.env.RENDER_EXTERNAL_URL || `http://${shownHost}:${port}`}`);
     console.log(
       provider.isConfigured()
         ? `     Live data: ${provider.name} (key loaded, refresh every ${REFRESH_SECONDS}s)`
         : '     Live data: OFF. Add AIRLABS_API_KEY to .env and restart. Demo Mode still works.',
     );
-    if (host === '0.0.0.0') console.log('     Listening on your local network too (HOST=0.0.0.0).');
+    console.log(`     Password: ${process.env.SITE_PASSWORD ? 'on (SITE_PASSWORD)' : 'off'}`);
+    if (host === '0.0.0.0' && !ON_RENDER) console.log('     Listening on your local network too (HOST=0.0.0.0).');
     console.log('');
   });
   server.on('error', (err) => {
