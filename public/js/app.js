@@ -47,6 +47,8 @@ const CHOICES = {
   pos: ['center', 'top-right', 'bottom-right', 'bottom-center'],
   size: ['s', 'm', 'l'],
   accent: ['blue', 'gold', 'white'],
+  // Reel Mode control bar: appears on mouse move / tap, or never (ticket only).
+  bar: ['auto', 'hidden'],
 };
 const POS_LABELS = { center: 'Center', 'top-right': 'Top right', 'bottom-right': 'Bottom right', 'bottom-center': 'Bottom center' };
 
@@ -57,7 +59,7 @@ function loadSettings() {
   } catch {
     saved = {};
   }
-  const s = { layout: 'full', bg: 'dark', pos: 'center', size: 'm', accent: 'blue' };
+  const s = { layout: 'full', bg: 'dark', pos: 'center', size: 'm', accent: 'blue', bar: 'auto' };
   for (const k of Object.keys(CHOICES)) if (CHOICES[k].includes(saved[k])) s[k] = saved[k];
   s.passenger = { ...DEFAULT_PASSENGER };
   if (saved.passenger && typeof saved.passenger === 'object') {
@@ -195,12 +197,19 @@ function showView(name) {
 }
 
 let toastTimer = null;
-function toast(message, ms = 2400) {
+/** Short message at the bottom. Suppressed in a clean (bar hidden) Reel Mode unless forced. */
+function toast(message, ms = 2400, { force = false } = {}) {
+  if (!force && barHidden()) return;
   const el = $('#toast');
   el.textContent = message;
   el.classList.add('show');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.classList.remove('show'), ms);
+}
+
+function hideToast() {
+  clearTimeout(toastTimer);
+  $('#toast').classList.remove('show');
 }
 
 function setNotice(message, kind = 'info') {
@@ -787,22 +796,36 @@ function updateLivePanel(snap, src) {
 
 let reelHideTimer = null;
 
+const barHidden = () => body.classList.contains('reel') && settings.bar === 'hidden';
+
 function setReel(on) {
   body.classList.toggle('reel', on);
   scheduleFit();
   if (on) {
     closeDisplayMenu();
     closeEditor();
-    showReelControls();
-    toast('Esc to exit  ·  F fullscreen  ·  1 2 3 layouts', 2600);
+    if (settings.bar === 'hidden') {
+      // Ticket only: no bar, no hints, no cursor.
+      body.classList.remove('controls-visible');
+      body.classList.add('idle');
+    } else {
+      showReelControls();
+      toast('Esc to exit  ·  F fullscreen  ·  H hide bar', 2600);
+    }
   } else {
     body.classList.remove('controls-visible', 'idle');
+    hideToast();
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
   }
 }
 
 function showReelControls() {
   if (!body.classList.contains('reel')) return;
+  if (settings.bar === 'hidden') {
+    body.classList.remove('controls-visible');
+    body.classList.add('idle');
+    return;
+  }
   body.classList.add('controls-visible');
   body.classList.remove('idle');
   clearTimeout(reelHideTimer);
@@ -821,6 +844,31 @@ function toggleFullscreen() {
 ['pointermove', 'pointerdown', 'touchstart'].forEach((ev) =>
   document.addEventListener(ev, () => body.classList.contains('reel') && showReelControls(), { passive: true }),
 );
+
+function setBarHidden(hidden) {
+  setSetting('bar', hidden ? 'hidden' : 'auto');
+  if (hidden) {
+    showReelControls(); // applies the hidden state
+    toast('Bar hidden  ·  double-tap or press H to bring it back', 2200, { force: true });
+  } else {
+    hideToast();
+    showReelControls();
+  }
+}
+
+// With the bar hidden, a double-tap (phone) or double-click brings it back.
+let lastTap = 0;
+document.addEventListener('pointerup', (e) => {
+  if (!barHidden() || e.target.closest('#reel-controls')) return;
+  const now = performance.now();
+  if (now - lastTap < 350) {
+    lastTap = 0;
+    if (window.getSelection) window.getSelection().removeAllRanges();
+    setBarHidden(false);
+  } else {
+    lastTap = now;
+  }
+});
 
 /* ───────────────────────────── Display menu & editor ───────────────────────────── */
 
@@ -940,6 +988,9 @@ document.addEventListener('click', (e) => {
     case 'fullscreen':
       toggleFullscreen();
       break;
+    case 'hide-bar':
+      setBarHidden(true);
+      break;
     case 'cycle-pos':
       cycleSetting('pos');
       toast(`Position: ${POS_LABELS[settings.pos]}`, 1200);
@@ -996,6 +1047,7 @@ document.addEventListener('keydown', (e) => {
     cycleSetting('pos');
     if (body.classList.contains('reel')) toast(`Position: ${POS_LABELS[settings.pos]}`, 1200);
   } else if (k === 'f') toggleFullscreen();
+  else if (k === 'h' && body.classList.contains('reel')) setBarHidden(settings.bar !== 'hidden');
   else if (k === 'e' && !body.classList.contains('reel')) openEditor();
   else if (k === ' ' && session && session.kind === 'demo') {
     e.preventDefault();

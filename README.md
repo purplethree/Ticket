@@ -121,7 +121,9 @@ Click **Reel mode** (or press `R`). Navigation, settings, editing buttons and da
 * at **1080 × 1920** (or any 9:16 window) the frame fills the screen
 * on a wider screen the 9:16 frame is centred, and the background colour fills the rest
 
-Move the mouse (or tap) to reveal a small control bar for **Full ticket / Compact / Minimal**, **Dark / Light / Green**, **Position** and **Fullscreen**. It fades away after 2 seconds and the cursor hides. Press `Esc` to leave.
+Move the mouse (or tap) to reveal a small control bar for **Full ticket / Compact / Minimal**, **Dark / Light / Green**, **Position**, **Fullscreen** and **Hide bar**. It fades away after 2 seconds and the cursor hides. Press `Esc` to leave.
+
+**Ticket only (no control bar at all):** click **Hide bar** (or press `H`). From then on, moving the mouse or tapping shows nothing but the ticket: no bar, no hints, no cursor. It's ideal for recording. **Double-tap** (phone) or **double-click** anywhere, or press `H`, to bring the bar back; `Esc` still leaves Reel Mode. The choice is remembered, and you can also set it under **Display → Reel Mode control bar**, or with `&bar=hidden` in a bookmarked link.
 
 **Position** (also in **Display**) places the widget at **Center**, **Top right**, **Bottom right** or **Bottom center** of the 9:16 frame, with safe margins for the platform UI.
 
@@ -156,6 +158,7 @@ These fields are saved only in your browser's local storage and are **never sent
 | `B` | Cycle background |
 | `P` | Cycle position |
 | `F` | Fullscreen |
+| `H` | Hide / show the Reel Mode control bar (ticket only) |
 | `E` | Edit pass |
 | `Space` | Pause / resume (**Demo Mode only**) |
 | `Esc` | Close menus, exit Reel Mode |
@@ -163,10 +166,10 @@ These fields are saved only in your browser's local storage and are **never sent
 ### Links you can bookmark
 
 * `…/?flight=EY416` loads that flight directly
-* `…/?flight=EY416&layout=compact&bg=green&pos=top-right&reel=1` opens a ready-to-record overlay
+* `…/?flight=EY416&layout=compact&bg=green&pos=top-right&reel=1&bar=hidden` opens a ready-to-record overlay with no control bar
 * `…/?demo=1` starts Demo Mode
 
-Accepted values: `layout=full|compact|minimal`, `bg=dark|light|green`, `pos=center|top-right|bottom-right|bottom-center`, `size=s|m|l`, `accent=blue|gold|white`, `date=YYYY-MM-DD`.
+Accepted values: `layout=full|compact|minimal`, `bg=dark|light|green`, `pos=center|top-right|bottom-right|bottom-center`, `size=s|m|l`, `accent=blue|gold|white`, `bar=auto|hidden`, `date=YYYY-MM-DD`.
 
 ### Demo Mode
 

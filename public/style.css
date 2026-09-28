@@ -1034,7 +1034,8 @@ kbd {
 
 .reel-controls { display: none; }
 
-body.reel { overflow: hidden; }
+/* no double-tap zoom and no text-selection highlight in recordings */
+body.reel { overflow: hidden; touch-action: manipulation; -webkit-user-select: none; user-select: none; }
 body.reel.idle { cursor: none; }
 body.reel .topbar,
 body.reel .below,

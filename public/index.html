@@ -171,6 +171,7 @@
       </div>
       <button type="button" class="chip-btn chip-dark" data-action="cycle-pos" id="reel-pos-btn">Position</button>
       <button type="button" class="chip-btn chip-dark" data-action="fullscreen">Fullscreen</button>
+      <button type="button" class="chip-btn chip-dark" data-action="hide-bar" title="Show only the ticket (H)">Hide bar</button>
       <button type="button" class="chip-btn chip-dark" data-action="exit-reel">Exit</button>
     </div>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -195,6 +196,14 @@
           <button type="button" role="radio" data-value="bottom-center">Bottom center</button>
         </div>
       </div>
+      <div class="pop-section">
+        <span class="pop-label">REEL MODE CONTROL BAR</span>
+        <div class="seg seg-full" role="radiogroup" aria-label="Reel Mode control bar" data-seg="bar">
+          <button type="button" role="radio" data-value="auto">Show on move / tap</button>
+          <button type="button" role="radio" data-value="hidden">Hidden (ticket only)</button>
+        </div>
+        <p class="pop-hint">Hidden keeps the screen clean for recording. Double-tap or press H to bring the bar back, Esc to leave.</p>
+      </div>
       <div class="pop-section pop-row">
         <div>
           <span class="pop-label">SIZE</span>
@@ -213,7 +222,7 @@
           </div>
         </div>
       </div>
-      <p class="pop-hint pop-keys">Shortcuts: <kbd>R</kbd> reel · <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> layout · <kbd>B</kbd> background · <kbd>E</kbd> edit</p>
+      <p class="pop-hint pop-keys">Shortcuts: <kbd>R</kbd> reel · <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> layout · <kbd>B</kbd> background · <kbd>H</kbd> hide bar · <kbd>E</kbd> edit</p>
     </div>
 
     <!-- ───────────── Passenger editor ───────────── -->
