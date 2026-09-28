@@ -410,6 +410,7 @@ function startLive(instance, search) {
       dep: instance.departure.iata,
       arr: instance.arrival.iata,
       sched: instance.departure.scheduled,
+      date: instance.localDate || null,
     },
     lastFetchWall: performance.now(),
     failures: 0,
@@ -482,6 +483,7 @@ async function refreshLive() {
     if (s.ref.dep) params.set('dep', s.ref.dep);
     if (s.ref.arr) params.set('arr', s.ref.arr);
     if (isNum(s.ref.sched)) params.set('sched', String(s.ref.sched));
+    if (s.ref.date) params.set('date', s.ref.date);
     const data = await api(`/api/flight?${params}`);
     if (s !== session) return;
     s.failures = 0;
@@ -728,6 +730,7 @@ const PANEL_ROWS = [
   ['provider', 'Data source'],
 ];
 const panelCache = new Map();
+const PROVIDER_LABELS = { aerodatabox: 'AeroDataBox', airlabs: 'AirLabs' };
 
 function buildLivePanel() {
   const grid = $('#lp-grid');
@@ -777,7 +780,7 @@ function updateLivePanel(snap, src) {
   setPanel('schedDep', isNum(d.scheduled) ? `${airportTime(d.scheduled, d)} ${d.iata || ''}`.trim() : null);
   setPanel('schedArr', isNum(a.scheduled) ? `${airportTime(a.scheduled, a)} ${a.iata || ''}`.trim() : null);
   setPanel('rawStatus', f.status.raw ? titleCase(f.status.raw) : null);
-  setPanel('provider', session.kind === 'demo' ? 'Demo simulation' : f.provider === 'airlabs' ? 'AirLabs' : f.provider);
+  setPanel('provider', session.kind === 'demo' ? 'Demo simulation' : PROVIDER_LABELS[f.provider] || f.provider);
 }
 
 /* ───────────────────────────── Reel mode ───────────────────────────── */
@@ -1019,6 +1022,8 @@ async function boot() {
     config = { liveAvailable: true, refreshSeconds: 60 };
   }
   $('#setup-note').hidden = config.liveAvailable !== false;
+  if (config.keyEnv) $('#setup-key').textContent = config.keyEnv;
+  if (config.providerLabel) $('#setup-service').textContent = config.providerLabel;
 
   const flight = params.get('flight');
   if (params.get('demo') === '1') {

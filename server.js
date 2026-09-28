@@ -52,12 +52,12 @@ function rateLimiter({ windowMs, max }) {
   };
 }
 
-function sendError(res, err, overrideMessage) {
+function sendError(res, err, overrideMessage, meta) {
   if (!(err instanceof FlightDataError)) console.error('[server] unexpected error:', err);
   else if (!['NOT_FOUND', 'INVALID_FLIGHT', 'INVALID_DATE', 'NO_API_KEY'].includes(err.code)) {
     console.warn(`[server] ${err.code}: ${err.message}`);
   }
-  const { status, body } = toClientError(err, overrideMessage);
+  const { status, body } = toClientError(err, overrideMessage, meta);
   if (body.error.retryAfterSeconds) res.set('Retry-After', String(body.error.retryAfterSeconds));
   res.status(status).json(body);
 }
@@ -69,6 +69,8 @@ function createApp({
 } = {}) {
   const app = express();
   const flightProvider = provider || createProvider(process.env);
+  const meta = { label: flightProvider.label, keyEnv: flightProvider.keyEnv };
+  const fail = (res, err, overrideMessage) => sendError(res, err, overrideMessage, meta);
 
   app.disable('x-powered-by');
   if (trustProxy) app.set('trust proxy', 1);
@@ -104,6 +106,8 @@ function createApp({
   api.get('/config', (req, res) => {
     res.json({
       provider: flightProvider.name,
+      providerLabel: flightProvider.label,
+      keyEnv: flightProvider.keyEnv,
       liveAvailable: flightProvider.isConfigured(),
       refreshSeconds: REFRESH_SECONDS,
     });
@@ -114,12 +118,12 @@ function createApp({
   // Search: find every instance of a flight number and pick the right one.
   api.get('/search', limited, async (req, res) => {
     const code = parseFlightCode(req.query.flight);
-    if (!code) return sendError(res, new FlightDataError('INVALID_FLIGHT'));
+    if (!code) return fail(res, new FlightDataError('INVALID_FLIGHT'));
     const date = parseDateParam(req.query.date);
-    if (date === undefined) return sendError(res, new FlightDataError('INVALID_DATE'));
+    if (date === undefined) return fail(res, new FlightDataError('INVALID_DATE'));
 
     try {
-      const instances = await flightProvider.findInstances(code);
+      const instances = await flightProvider.findInstances(code, { date });
       const selection = selectInstance(instances, { date, now: Date.now(), display: code.code });
       res.json({
         query: { flight: code.code, type: code.type, display: code.display, date },
@@ -128,10 +132,14 @@ function createApp({
       });
     } catch (err) {
       const notFound = err instanceof FlightDataError && err.code === 'NOT_FOUND';
-      sendError(
+      fail(
         res,
         err,
-        notFound ? `Couldn't find a flight ${code.code}. Check the flight number and try again.` : undefined,
+        notFound
+          ? date
+            ? `Couldn't find ${code.code} departing on ${date}. Check the flight number and date, or leave the date empty.`
+            : `Couldn't find a flight ${code.code}. Check the flight number and try again.`
+          : undefined,
       );
     }
   });
@@ -139,17 +147,18 @@ function createApp({
   // Refresh one already-chosen instance.
   api.get('/flight', limited, async (req, res) => {
     const code = parseFlightCode(req.query.flight);
-    if (!code) return sendError(res, new FlightDataError('INVALID_FLIGHT'));
+    if (!code) return fail(res, new FlightDataError('INVALID_FLIGHT'));
     const dep = /^[A-Z0-9]{3}$/.test(String(req.query.dep || '')) ? String(req.query.dep) : null;
     const arr = /^[A-Z0-9]{3}$/.test(String(req.query.arr || '')) ? String(req.query.arr) : null;
     const schedNum = Number(req.query.sched);
     const sched = req.query.sched && Number.isFinite(schedNum) && schedNum > 0 ? schedNum : null;
+    const date = parseDateParam(req.query.date) || null;
 
     try {
-      const instance = await flightProvider.refreshInstance(code, { dep, arr, sched });
+      const instance = await flightProvider.refreshInstance(code, { dep, arr, sched, date });
       res.json({ serverTime: Date.now(), instance });
     } catch (err) {
-      sendError(res, err);
+      fail(res, err);
     }
   });
 
@@ -178,8 +187,8 @@ if (require.main === module) {
     console.log(`     Open  ${process.env.RENDER_EXTERNAL_URL || `http://${shownHost}:${port}`}`);
     console.log(
       provider.isConfigured()
-        ? `     Live data: ${provider.name} (key loaded, refresh every ${REFRESH_SECONDS}s)`
-        : '     Live data: OFF. Add AIRLABS_API_KEY to .env and restart. Demo Mode still works.',
+        ? `     Live data: ${provider.label} (key loaded, refresh every ${REFRESH_SECONDS}s)`
+        : `     Live data: OFF. Add ${provider.keyEnv} to .env (or Render → Environment) and restart. Demo Mode still works.`,
     );
     console.log(`     Password: ${process.env.SITE_PASSWORD ? 'on (SITE_PASSWORD)' : 'off'}`);
     if (host === '0.0.0.0' && !ON_RENDER) console.log('     Listening on your local network too (HOST=0.0.0.0).');

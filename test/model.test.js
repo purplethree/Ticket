@@ -134,6 +134,25 @@ test('scheduled flight: 0 %, DELAYED when departure slips ≥ 15 min, BOARDING f
   assert.equal(s.status.label, 'BOARDING');
 });
 
+test('provider-reported boarding, gate closed and approach statuses are shown', () => {
+  const now = Date.UTC(2026, 8, 28, 8, 0);
+  const clock = fixedClock(now);
+  const tr = new FlightTracker(clock);
+  const f = flight(now);
+  f.departure = { ...AUH, scheduled: now + 25 * MIN, estimated: null, actual: null };
+  f.arrival = { ...HKT, scheduled: now + 7 * HOUR, estimated: null, actual: null };
+  f.status = { code: 'scheduled', raw: 'Boarding', detail: 'boarding' };
+  tr.setFlight(f, { fresh: true, receivedAt: now });
+  assert.equal(tr.snapshot().status.label, 'BOARDING');
+  f.status = { code: 'scheduled', raw: 'GateClosed', detail: 'gate-closed' };
+  tr.setFlight(f, { fresh: true, receivedAt: now });
+  assert.equal(tr.snapshot().status.label, 'GATE CLOSED');
+  const g = flight(now);
+  g.status = { code: 'airborne', raw: 'Approaching', detail: 'approaching' };
+  tr.setFlight(g, { fresh: true, receivedAt: now });
+  assert.equal(tr.snapshot().status.label, 'DESCENDING');
+});
+
 test('missing ETA and times never produce NaN', () => {
   const now = Date.UTC(2026, 8, 28, 8, 0);
   const tr = new FlightTracker(fixedClock(now));

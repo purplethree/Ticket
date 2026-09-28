@@ -13,11 +13,15 @@ services:
     envVars:
       - key: NODE_VERSION
         value: "22"
-      # Your AirLabs API key (kept on Render's server, never sent to the page)
-      - key: AIRLABS_API_KEY
+      - key: FLIGHT_PROVIDER
+        value: aerodatabox
+      # Your RapidAPI key for AeroDataBox (kept on Render's server, never sent to the page)
+      - key: AERODATABOX_API_KEY
         sync: false
       # The password visitors must enter to open the site
       - key: SITE_PASSWORD
         sync: false
+      # Each refresh costs 1 AeroDataBox unit; the free plan has 600 a month.
+      # 120 s ≈ 180 units for a 6-hour flight.
       - key: REFRESH_INTERVAL_SECONDS
-        value: "60"
+        value: "120"

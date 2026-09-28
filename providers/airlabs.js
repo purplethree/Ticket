@@ -37,6 +37,8 @@ const LIVE_REFRESH_AFTER_MS = 3 * 60e3;
 class AirLabsProvider {
   constructor({ apiKey, baseUrl, cacheFile = null, fetchImpl, logger } = {}) {
     this.name = 'airlabs';
+    this.label = 'AirLabs';
+    this.keyEnv = 'AIRLABS_API_KEY';
     this.apiKey = String(apiKey || '').trim();
     this.baseUrl = String(baseUrl || DEFAULT_BASE_URL).replace(/\/+$/, '');
     this.fetch = fetchImpl || globalThis.fetch;
@@ -125,6 +127,8 @@ class AirLabsProvider {
    * Finds every instance of a flight number the API currently knows about.
    * @param {{type:'iata'|'icao', code:string}} flightCode
    */
+  // The optional { date } is not needed here: AirLabs lists the instances
+  // around today and the server filters them by date.
   async findInstances(flightCode) {
     const now = Date.now();
     const param = flightParam(flightCode);

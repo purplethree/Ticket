@@ -188,21 +188,30 @@ export class FlightTracker {
     if (s === 'diverted') return { label: 'DIVERTED', tone: 'bad' };
     if (s === 'incident') return { label: 'INCIDENT', tone: 'bad' };
 
+    const detail = f.status.detail || null;
     const evidenceInAir = s === 'airborne' || mode === 'live' || f.departure.actual != null;
     if (evidenceInAir && (mode === 'live' || mode === 'time')) {
-      if (this.isDescending(now, remainingMs)) return { label: 'DESCENDING', tone: 'accent' };
+      // "Approaching" is reported by the data provider; otherwise descent is
+      // derived from the aircraft's vertical speed / altitude trend.
+      if (detail === 'approaching' || this.isDescending(now, remainingMs)) return { label: 'DESCENDING', tone: 'accent' };
       const since = f.departure.actual != null ? now - f.departure.actual : null;
-      if (mode !== 'live' && since != null && since >= 0 && since < 20 * MIN) return { label: 'DEPARTED', tone: 'accent' };
+      const justLeft = since != null && since >= 0 && since < 20 * MIN;
+      // "Departed" only right after take-off; later it's simply in flight.
+      if (mode !== 'live' && (justLeft || (detail === 'departed' && since == null))) {
+        return { label: 'DEPARTED', tone: 'accent' };
+      }
       return { label: 'IN FLIGHT', tone: 'accent' };
     }
     if (mode === 'scheduled') {
       const depRef = this.target.depRef;
+      if (detail === 'boarding') return { label: 'BOARDING', tone: 'ok' };
+      if (detail === 'gate-closed') return { label: 'GATE CLOSED', tone: 'warn' };
       if (isNum(boardingTime) && now >= boardingTime && (depRef == null || now < depRef)) {
         return { label: 'BOARDING', tone: 'ok' };
       }
       const d = f.departure;
       const delay = isNum(d.delayMin) ? d.delayMin : isNum(d.estimated) && isNum(d.scheduled) ? (d.estimated - d.scheduled) / MIN : 0;
-      if (delay >= 15) return { label: 'DELAYED', tone: 'warn' };
+      if (delay >= 15 || detail === 'delayed') return { label: 'DELAYED', tone: 'warn' };
       if (s === 'scheduled') return { label: 'SCHEDULED', tone: 'neutral' };
     }
     return { label: '—', tone: 'neutral' };
